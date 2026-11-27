@@ -53,6 +53,14 @@ public final class AppContainer {
 
     /// 跨 Tab 跳转控制（入队下载后自动切至「下载」Tab）
     public var selectedTab: MainTab = .resolve
+    /// 由系统分享扩展（Share Extension）或外部 URL Scheme 传入的待解析请求
+    public var pendingDeepLink: DeepLinkRequest?
+
+    public func handleIncomingURL(_ url: URL) {
+        guard let req = DeepLinkHandler.parse(url: url) else { return }
+        selectedTab = .resolve
+        pendingDeepLink = req
+    }
 
     public init() {
         let settings = SettingsStore()

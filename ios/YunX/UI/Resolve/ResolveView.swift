@@ -131,7 +131,11 @@ struct ResolveView: View {
                 if videoVM == nil {
                     videoVM = VideoResolveViewModel(container: container)
                 }
+                consumePendingDeepLinkIfNeeded()
                 checkClipboardIfEnabled()
+            }
+            .onChange(of: container.pendingDeepLink) { _, _ in
+                consumePendingDeepLinkIfNeeded()
             }
         }
     }
@@ -460,6 +464,27 @@ struct ResolveView: View {
         clipboardRawText = text
         clipboardCandidate = parsed
         #endif
+    }
+
+    private func consumePendingDeepLinkIfNeeded() {
+        guard let req = container.pendingDeepLink else { return }
+        container.pendingDeepLink = nil
+        switch req.mode {
+        case .cloud:
+            mode = .cloud
+            viewModel.resetToInput()
+            Task { await viewModel.startResolve(overrideText: req.rawText) }
+        case .video:
+            viewModel.resetToInput()
+            mode = .video
+            if videoVM == nil {
+                videoVM = VideoResolveViewModel(container: container)
+            }
+            if let vvm = videoVM {
+                vvm.reset()
+                Task { await vvm.startParse(overrideText: req.rawText) }
+            }
+        }
     }
 }
 

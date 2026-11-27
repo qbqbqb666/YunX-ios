@@ -16,6 +16,9 @@ struct YunXApp: App {
         WindowGroup {
             MainTabView(container: container)
                 .preferredColorScheme(container.settings.appearance.colorScheme)
+                .onOpenURL { url in
+                    container.handleIncomingURL(url)
+                }
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .background {
                         // iOS 后台约 30s 会强制挂起普通网络流；主动安全暂停以保留分片完整度，切回秒续传
