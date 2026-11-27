@@ -20,6 +20,11 @@ public enum Pan123Constants {
 
     public static let shareGetURL = "\(apiBase)/b/api/share/get"
     public static let shareDownloadInfoURL = "\(downloadBase)/b/api/share/download/info"
+    public static let fileListURL = "\(apiBase)/b/api/file/list/new"
+    public static let fileDownloadInfoURL = "\(apiBase)/api/file/download_info"
+    public static let fileTrashURL = "\(apiBase)/b/api/file/trash"
+    public static let fileRenameURL = "\(apiBase)/b/api/file/rename"
+    public static let fileUploadRequestURL = "\(apiBase)/b/api/file/upload_request"
     public static let userInfoURL = "\(apiBase)/b/api/user/info"
 
     public static let webUA =

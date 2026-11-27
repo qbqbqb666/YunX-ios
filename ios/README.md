@@ -19,15 +19,17 @@ ios/
 │   │   ├── Network/            # 三会话 HTTP 客户端、Cookie 工具、日志脱敏
 │   │   ├── Storage/            # Keychain 凭证、账号/设置/书签存储、YUNX_AUTH_V2 加密备份
 │   │   ├── Download/           # 70/30 主池弹性区多线程 Range 引擎、慢连接看门狗抢占、边合边删
-│   │   └── Providers/          # 10 大平台独立协议目录（Quark / UC / Pan123 / Lanzou / Pan115 / C139 / Xunlei / GuangYa / Baidu / GitHub）
+│   │   ├── Cloud/              # 个人网盘管理协议与配额模型（CloudDriveProvider / CloudQuota）
+│   │   └── Providers/          # 10 大平台独立协议目录（各含 +CloudDrive.swift 个人盘与转存扩展）
 │   └── UI/
 │       ├── Theme/              # 视觉令牌、格式化工具、复用组件
-│       ├── Navigation/         # 4 Tab 主容器与全局 Toast
-│       ├── Resolve/            # 链接解析、面包屑浏览、单文件/文件夹下载
+│       ├── Navigation/         # 5 Tab 主容器（解析 / 云盘 / 下载 / 账号 / 设置）与全局 Toast
+│       ├── Resolve/            # 链接解析、面包屑浏览、单文件/文件夹下载、分享一键转存
+│       ├── Cloud/              # 个人网盘浏览、配额显示、新建文件夹、重命名、删除、直链下载与转存选目录弹窗
 │       ├── Account/            # WKWebView 自动抓 Cookie（夸克/UC/115/139/百度）、原生账密/短信直登（123/迅雷/光鸭）、手动凭证兜底
 │       ├── Download/           # 实时速度/进度管理、QuickLook 预览、系统分享与「文件」App 集成
 │       └── Settings/           # 线程/并发/限速/防息屏设置、加密备份、关于页
-└── YunXTests/                  # 单元测试（链接识别 / 加密备份 / 下载算法 / Phase 1 & Phase 2 协议算法）
+└── YunXTests/                  # 单元测试（链接识别 / 加密备份 / 下载算法 / Phase 1-3 协议与个人盘）
 ```
 
 ## 本地构建与运行

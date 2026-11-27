@@ -30,6 +30,7 @@ public final class ResolveViewModel {
     public private(set) var isFetchingLink: Bool = false
     public var fetchedLink: DownloadLink?
     public var selectedFileForSheet: ShareFile?
+    public var transferTargetFile: ShareFile?
 
     /// 批量/文件夹下载进度文案
     public private(set) var batchProgressText: String?
@@ -127,7 +128,22 @@ public final class ResolveViewModel {
         errorMessage = nil
         fetchedLink = nil
         selectedFileForSheet = nil
+        transferTargetFile = nil
         isGuestMode = false
+    }
+
+    public func beginTransferToCloud(_ file: ShareFile) {
+        guard let session else { return }
+        guard session.platform.supportsCloudDrive else {
+            container.toast.show("\(session.platform.displayName)暂不支持个人盘转存")
+            return
+        }
+        guard container.accountStore.isLoggedIn(session.platform) else {
+            container.toast.show("转存需先在「账号」页登录\(session.platform.displayName)")
+            container.selectedTab = .account
+            return
+        }
+        transferTargetFile = file
     }
 
     public func bookmarkCurrentShare() {

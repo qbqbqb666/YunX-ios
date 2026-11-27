@@ -9,18 +9,21 @@ import SwiftUI
 
 public enum MainTab: Hashable {
     case resolve
-    case account
+    case cloud
     case download
+    case account
     case settings
 }
 
 struct MainTabView: View {
     @Bindable var container: AppContainer
     @State private var resolveVM: ResolveViewModel
+    @State private var cloudVM: CloudDriveViewModel
 
     init(container: AppContainer) {
         self.container = container
         self._resolveVM = State(initialValue: ResolveViewModel(container: container))
+        self._cloudVM = State(initialValue: CloudDriveViewModel(container: container))
     }
 
     private var activeDownloadCount: Int {
@@ -36,11 +39,11 @@ struct MainTabView: View {
                     }
                     .tag(MainTab.resolve)
 
-                AccountListView(container: container)
+                CloudDriveView(container: container, viewModel: cloudVM)
                     .tabItem {
-                        Label("账号", systemImage: "person.crop.circle.fill")
+                        Label("云盘", systemImage: "externaldrive.fill")
                     }
-                    .tag(MainTab.account)
+                    .tag(MainTab.cloud)
 
                 DownloadListView(container: container)
                     .tabItem {
@@ -48,6 +51,12 @@ struct MainTabView: View {
                     }
                     .badge(activeDownloadCount)
                     .tag(MainTab.download)
+
+                AccountListView(container: container)
+                    .tabItem {
+                        Label("账号", systemImage: "person.crop.circle.fill")
+                    }
+                    .tag(MainTab.account)
 
                 SettingsView(container: container)
                     .tabItem {

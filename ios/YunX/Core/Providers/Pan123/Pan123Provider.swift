@@ -13,8 +13,8 @@ import Foundation
 public final class Pan123Provider: ShareResolveProvider, @unchecked Sendable {
     public let platform: SharePlatform = .pan123
 
-    private let http: HTTPClient
-    private let loginUUID: String
+    internal let http: HTTPClient
+    internal let loginUUID: String
 
     public init(http: HTTPClient = .shared, loginUUID: String = Pan123Constants.persistentLoginUUID()) {
         self.http = http
@@ -183,7 +183,7 @@ public final class Pan123Provider: ShareResolveProvider, @unchecked Sendable {
 
     // MARK: - 内部请求与重定向探测
 
-    private func followRedirectURL(_ initial: String) async -> String {
+    internal func followRedirectURL(_ initial: String) async -> String {
         var current = initial
         for _ in 0..<5 {
             guard let next = await probeJSONRedirect(current) else { return current }
@@ -227,7 +227,7 @@ public final class Pan123Provider: ShareResolveProvider, @unchecked Sendable {
         }
     }
 
-    private func authGet(url: String, path: String, token: String) async throws -> [String: Any] {
+    internal func authGet(url: String, path: String, token: String) async throws -> [String: Any] {
         let sign = Pan123Signer.makeSign(path: path)
         let headers = [
             "platform": Pan123Constants.platformWeb,
@@ -243,7 +243,7 @@ public final class Pan123Provider: ShareResolveProvider, @unchecked Sendable {
         return try parseJSON(resp: resp)
     }
 
-    private func authPost(
+    internal func authPost(
         url: String,
         path: String,
         body: [String: Any],
@@ -267,21 +267,21 @@ public final class Pan123Provider: ShareResolveProvider, @unchecked Sendable {
         return try parseJSON(resp: resp)
     }
 
-    private func parseJSON(resp: HTTPResponseData) throws -> [String: Any] {
+    internal func parseJSON(resp: HTTPResponseData) throws -> [String: Any] {
         guard let json = try? JSONSerialization.jsonObject(with: resp.body) as? [String: Any] else {
             throw HTTPClientError.invalidJSON(resp.statusCode)
         }
         return json
     }
 
-    private func checkCodeZero(_ json: [String: Any], fallback: String) throws {
+    internal func checkCodeZero(_ json: [String: Any], fallback: String) throws {
         let code = (json["code"] as? NSNumber)?.intValue ?? -1
         guard code != 0 else { return }
         let msg = (json["message"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? fallback
         throw ProviderError.apiMessage(msg, code: code)
     }
 
-    private func parseInfoList(_ data: [String: Any]) -> [ShareFile] {
+    internal func parseInfoList(_ data: [String: Any]) -> [ShareFile] {
         guard let arr = data["InfoList"] as? [[String: Any]] else { return [] }
         return arr.map { item in
             let typeVal = (item["Type"] as? NSNumber)?.intValue ?? 0

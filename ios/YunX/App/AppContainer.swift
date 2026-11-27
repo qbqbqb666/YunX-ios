@@ -120,4 +120,19 @@ public final class AppContainer {
         case .ilanzou: return nil
         }
     }
+
+    /// 获取个人网盘管理与分享转存提供者（覆盖 8 大网盘）
+    public func cloudProvider(for platform: SharePlatform) -> CloudDriveProvider? {
+        switch platform {
+        case .quark: return quarkProvider
+        case .uc: return ucProvider
+        case .pan123: return pan123Provider
+        case .pan115: return pan115Provider
+        case .c139: return c139Provider
+        case .xunlei: return xunleiProvider
+        case .guangya: return guangyaProvider
+        case .baidu: return baiduProvider
+        case .lanzou, .github, .ilanzou: return nil
+        }
+    }
 }

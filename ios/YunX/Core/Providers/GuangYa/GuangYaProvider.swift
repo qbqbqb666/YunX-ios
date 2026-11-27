@@ -420,7 +420,7 @@ public final class GuangYaProvider: ShareResolveProvider, @unchecked Sendable {
         return try await createDir(parentId: "", name: GuangYaConstants.tempDirName, payload: payload)
     }
 
-    private func listCloudFiles(parentId: String, payload: GuangYaCredentialPayload) async throws -> [ShareFile] {
+    internal func listCloudFiles(parentId: String, payload: GuangYaCredentialPayload) async throws -> [ShareFile] {
         let body: [String: Any] = [
             "parentId": parentId,
             "pageSize": GuangYaConstants.pageSize,
@@ -434,7 +434,7 @@ public final class GuangYaProvider: ShareResolveProvider, @unchecked Sendable {
         return parseFileList(listArray(data))
     }
 
-    private func createDir(parentId: String, name: String, payload: GuangYaCredentialPayload) async throws -> String {
+    internal func createDir(parentId: String, name: String, payload: GuangYaCredentialPayload) async throws -> String {
         let body: [String: Any] = [
             "parentId": parentId,
             "dirName": name,
@@ -448,7 +448,7 @@ public final class GuangYaProvider: ShareResolveProvider, @unchecked Sendable {
         return id
     }
 
-    private func restoreShare(shareToken: String, fileIds: [String], parentId: String, payload: GuangYaCredentialPayload) async throws {
+    internal func restoreShare(shareToken: String, fileIds: [String], parentId: String, payload: GuangYaCredentialPayload) async throws {
         let body: [String: Any] = [
             "accessToken": shareToken,
             "fileIds": fileIds,
@@ -461,7 +461,7 @@ public final class GuangYaProvider: ShareResolveProvider, @unchecked Sendable {
         }
     }
 
-    private func waitTask(taskId: String, payload: GuangYaCredentialPayload) async throws {
+    internal func waitTask(taskId: String, payload: GuangYaCredentialPayload) async throws {
         try? await Task.sleep(nanoseconds: 750_000_000)
         for _ in 0..<40 {
             let json = try await businessPost(
@@ -486,7 +486,7 @@ public final class GuangYaProvider: ShareResolveProvider, @unchecked Sendable {
         throw ProviderError.apiMessage("光鸭转存超时，请稍后重试")
     }
 
-    private func fetchPersonalDownload(file: ShareFile, payload: GuangYaCredentialPayload) async throws -> DownloadLink {
+    internal func fetchPersonalDownload(file: ShareFile, payload: GuangYaCredentialPayload) async throws -> DownloadLink {
         let json = try await businessPost(
             url: GuangYaConstants.resDownloadURL,
             body: ["fileId": file.fid],
@@ -510,7 +510,7 @@ public final class GuangYaProvider: ShareResolveProvider, @unchecked Sendable {
 
     // MARK: - 请求构造与解析工具
 
-    private func businessPost(url: String, body: [String: Any], deviceId: String?, token: String?) async throws -> [String: Any] {
+    internal func businessPost(url: String, body: [String: Any], deviceId: String?, token: String?) async throws -> [String: Any] {
         var headers: [String: String] = [
             "Accept": "application/json, text/plain, */*",
             "Content-Type": "application/json",
@@ -587,7 +587,7 @@ public final class GuangYaProvider: ShareResolveProvider, @unchecked Sendable {
         return code.isEmpty || code == "0"
     }
 
-    private func dataOf(_ json: [String: Any]) -> [String: Any]? {
+    internal func dataOf(_ json: [String: Any]) -> [String: Any]? {
         if let d = json["data"] as? [String: Any] { return d }
         return json.isEmpty ? nil : json
     }
@@ -641,7 +641,7 @@ public final class GuangYaProvider: ShareResolveProvider, @unchecked Sendable {
         }
     }
 
-    private func checkBusiness(_ json: [String: Any], fallback: String) throws {
+    internal func checkBusiness(_ json: [String: Any], fallback: String) throws {
         if isSuccess(json) { return }
         let code = stringValue(json["code"])
         let serverMsg = firstNonEmpty(stringValue(json["msg"]), stringValue(json["message"]), stringValue(json["error_description"]))
@@ -672,19 +672,19 @@ public final class GuangYaProvider: ShareResolveProvider, @unchecked Sendable {
         return s.addingPercentEncoding(withAllowedCharacters: allowed) ?? s
     }
 
-    private func stringValue(_ v: Any?) -> String {
+    internal func stringValue(_ v: Any?) -> String {
         if let s = v as? String { return s }
         if let n = v as? NSNumber { return n.stringValue }
         return ""
     }
 
-    private func intValue(_ v: Any?, default def: Int = 0) -> Int {
+    internal func intValue(_ v: Any?, default def: Int = 0) -> Int {
         if let n = v as? NSNumber { return n.intValue }
         if let s = v as? String, let i = Int(s) { return i }
         return def
     }
 
-    private func int64Value(_ v: Any?) -> Int64 {
+    internal func int64Value(_ v: Any?) -> Int64 {
         if let n = v as? NSNumber { return n.int64Value }
         if let s = v as? String, let i = Int64(s) { return i }
         return 0

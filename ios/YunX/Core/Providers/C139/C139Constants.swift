@@ -15,6 +15,26 @@ public enum C139Constants {
     public static let shareListURL = "\(shareBase)/yun-share/richlifeApp/devapp/IOutLink/getOutLinkInfoV6"
     public static let shareLinkURL = "\(shareBase)/yun-share/richlifeApp/devapp/IOutLink/dlFromOutLinkV3"
     public static let shareGeneralURL = "\(shareBase)/yun-share/richlifeApp/devapp/IOutLink/getOutLinkGeneral"
+    public static let transferCreateURL = "\(shareBase)/yun-share/richlifeApp/devapp/IBatchOprTask/createOuterLinkBatchOprTask"
+
+    // 个人网盘管理端点（明文 JSON + Authorization + mcloud-sign + APISIX 渠道头）
+    public static let cloudBase = "https://personal-kd-njs.yun.139.com"
+    public static let fileListURL = "\(cloudBase)/hcy/file/list"
+    public static let fileCreateURL = "\(cloudBase)/hcy/file/create"
+    public static let fileUpdateURL = "\(cloudBase)/hcy/file/update"
+    public static let batchTrashURL = "\(cloudBase)/hcy/recyclebin/batchTrash"
+    public static let downloadURL = "\(cloudBase)/hcy/file/getDownloadUrl"
+    public static let quotaDetailURL = "https://user-njs.yun.139.com/user/disk/quota/detail"
+
+    public static let yunChannelSource = "10000034"
+    public static let mcloudVersion = "7.17.9"
+    public static let mcloudClient = "10701"
+    public static let mcloudChannel = "1000101"
+    public static let yunModuleType = "100"
+    public static let m4cSrc = "10002"
+    public static let m4cCaller = "PC"
+    public static let xDeviceInfo = "||9|7.17.9|chrome|116.0.0.0|2cdaf7ada9e353c70eba99092e177991||windows 10||zh-CN|||"
+    public static let xClientInfo = "||9|7.17.9|chrome|116.0.0.0|2cdaf7ada9e353c70eba99092e177991||windows 10||zh-CN|||dW5kZWZpbmVk||"
 
     /// 分享接口固定 AES-128-CBC 密钥（16 字节）
     public static let shareAESKey = "PVGDwmcvfs1uV3d1"

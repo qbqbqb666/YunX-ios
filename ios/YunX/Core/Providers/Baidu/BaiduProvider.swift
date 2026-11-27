@@ -12,7 +12,7 @@ import Foundation
 
 public final class BaiduProvider: ShareResolveProvider, @unchecked Sendable {
     public let platform: SharePlatform = .baidu
-    private let http: HTTPClient
+    internal let http: HTTPClient
     private let tokenLock = NSLock()
     private var cachedBdstoken: String?
 
@@ -120,7 +120,7 @@ public final class BaiduProvider: ShareResolveProvider, @unchecked Sendable {
         return json["result"] as? [String: Any]
     }
 
-    private func getBdstoken(cookie: String) async -> String? {
+    internal func getBdstoken(cookie: String) async -> String? {
         let existing: String? = tokenLock.withLock { cachedBdstoken }
         if let existing, !existing.isEmpty { return existing }
         guard let res = await fetchTemplateVariable(cookie: cookie, fields: "[\"bdstoken\"]") else { return nil }
@@ -211,7 +211,7 @@ public final class BaiduProvider: ShareResolveProvider, @unchecked Sendable {
         )
     }
 
-    private func createDir(path: String, cookie: String) async -> Bool {
+    internal func createDir(path: String, cookie: String) async -> Bool {
         guard let bdstoken = await getBdstoken(cookie: cookie) else { return false }
         let body = "path=\(urlEncode(path))&isdir=1&size&block_list=%5B%5D&method=post&dataType=json"
         let url = "https://pan.baidu.com/api/create?a=commit&channel=chunlei&web=1&app_id=\(BaiduConstants.appId)&clienttype=0&bdstoken=\(urlEncode(bdstoken))"
@@ -232,7 +232,7 @@ public final class BaiduProvider: ShareResolveProvider, @unchecked Sendable {
         return intValue(json["errno"], default: -1) == 0
     }
 
-    private func transfer(
+    internal func transfer(
         shareId: String,
         uk: String,
         sekey: String,
@@ -272,7 +272,7 @@ public final class BaiduProvider: ShareResolveProvider, @unchecked Sendable {
         return (newFsId, newPath)
     }
 
-    private func locateDownload(path: String, cookie: String) async throws -> String {
+    internal func locateDownload(path: String, cookie: String) async throws -> String {
         let time = Int64(Date().timeIntervalSince1970)
         let url = "https://d.pcs.baidu.com/rest/2.0/pcs/file" +
             "?method=locatedownload&app_id=\(BaiduConstants.appId)&clienttype=17&ver=4.0" +
@@ -330,7 +330,7 @@ public final class BaiduProvider: ShareResolveProvider, @unchecked Sendable {
 
     // MARK: - 辅助工具
 
-    private func decodeStoken(_ stoken: String) -> (sekey: String, shareId: String, uk: String) {
+    internal func decodeStoken(_ stoken: String) -> (sekey: String, shareId: String, uk: String) {
         let parts = stoken.split(separator: "|", omittingEmptySubsequences: false).map(String.init)
         let sekey = parts.indices.contains(0) ? parts[0] : ""
         let shareId = parts.indices.contains(1) ? parts[1] : ""
@@ -338,14 +338,14 @@ public final class BaiduProvider: ShareResolveProvider, @unchecked Sendable {
         return (sekey, shareId, uk)
     }
 
-    private func parseJSON(_ resp: HTTPResponseData) throws -> [String: Any] {
+    internal func parseJSON(_ resp: HTTPResponseData) throws -> [String: Any] {
         guard let obj = try? JSONSerialization.jsonObject(with: resp.body) as? [String: Any] else {
             throw HTTPClientError.invalidJSON(resp.statusCode)
         }
         return obj
     }
 
-    private func checkErrno(_ json: [String: Any], fallback: String) throws {
+    internal func checkErrno(_ json: [String: Any], fallback: String) throws {
         let errno = intValue(json["errno"], default: 0)
         if errno == 0 { return }
         let msg = [json["err_msg"], json["errmsg"], json["show_msg"]]
@@ -354,25 +354,25 @@ public final class BaiduProvider: ShareResolveProvider, @unchecked Sendable {
         throw ProviderError.apiMessage(msg.isEmpty ? "\(fallback)（errno=\(errno)）" : "\(msg)（errno=\(errno)）")
     }
 
-    private func urlEncode(_ s: String) -> String {
+    internal func urlEncode(_ s: String) -> String {
         var allowed = CharacterSet.alphanumerics
         allowed.insert(charactersIn: "-._~")
         return s.addingPercentEncoding(withAllowedCharacters: allowed) ?? s
     }
 
-    private func stringValue(_ v: Any?) -> String {
+    internal func stringValue(_ v: Any?) -> String {
         if let s = v as? String { return s }
         if let n = v as? NSNumber { return n.stringValue }
         return ""
     }
 
-    private func intValue(_ v: Any?, default def: Int = 0) -> Int {
+    internal func intValue(_ v: Any?, default def: Int = 0) -> Int {
         if let n = v as? NSNumber { return n.intValue }
         if let s = v as? String, let i = Int(s) { return i }
         return def
     }
 
-    private func int64Value(_ v: Any?) -> Int64 {
+    internal func int64Value(_ v: Any?) -> Int64 {
         if let n = v as? NSNumber { return n.int64Value }
         if let s = v as? String, let i = Int64(s) { return i }
         return 0

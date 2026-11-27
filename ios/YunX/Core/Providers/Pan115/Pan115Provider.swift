@@ -12,7 +12,7 @@ import Foundation
 
 public final class Pan115Provider: ShareResolveProvider, @unchecked Sendable {
     public let platform: SharePlatform = .pan115
-    private let http: HTTPClient
+    internal let http: HTTPClient
     private let versionLock = NSLock()
     private var versionRefreshed = false
 
@@ -298,7 +298,7 @@ public final class Pan115Provider: ShareResolveProvider, @unchecked Sendable {
         )
     }
 
-    private func fetchAppDownloadLink(pickcode: String, cookie: String, fallbackFile: ShareFile) async throws -> DownloadLink {
+    internal func fetchAppDownloadLink(pickcode: String, cookie: String, fallbackFile: ShareFile) async throws -> DownloadLink {
         let key = Pan115Crypto.newKey()
         let payload = "{\"pickcode\":\"\(pickcode)\"}"
         let encoded = try Pan115Crypto.encode(payload: payload, key: key)
@@ -371,7 +371,7 @@ public final class Pan115Provider: ShareResolveProvider, @unchecked Sendable {
         return try await createFolder(parentCid: Pan115Constants.rootCid, name: Pan115Constants.tempDirName, cookie: cookie)
     }
 
-    private func createFolder(parentCid: String, name: String, cookie: String) async throws -> String {
+    internal func createFolder(parentCid: String, name: String, cookie: String) async throws -> String {
         let body = "pid=\(urlEncode(parentCid))&cname=\(urlEncode(name))"
         let resp = try await http.send(
             url: Pan115Constants.fileAddURL,
@@ -388,7 +388,7 @@ public final class Pan115Provider: ShareResolveProvider, @unchecked Sendable {
         return cid
     }
 
-    private func receiveShare(shareCode: String, receiveCode: String, fileId: String, targetCid: String, cookie: String) async throws {
+    internal func receiveShare(shareCode: String, receiveCode: String, fileId: String, targetCid: String, cookie: String) async throws {
         let body = "share_code=\(urlEncode(shareCode))&receive_code=\(urlEncode(receiveCode))" +
             "&file_id=\(urlEncode(fileId))&cid=\(urlEncode(targetCid))"
         var headers = formHeaders(cookie: cookie)
@@ -403,7 +403,7 @@ public final class Pan115Provider: ShareResolveProvider, @unchecked Sendable {
         try checkState(json, fallback: "115 转存分享文件失败")
     }
 
-    private func listPersonalFiles(cid: String, cookie: String) async throws -> [ShareFile] {
+    internal func listPersonalFiles(cid: String, cookie: String) async throws -> [ShareFile] {
         let url = "\(Pan115Constants.filesURL)?aid=\(Pan115Constants.aidPersonal)&cid=\(urlEncode(cid))" +
             "&o=user_ptime&asc=0&offset=0&show_dir=1&limit=\(Pan115Constants.pageLimit)&format=json"
         let resp = try await http.send(url: url, headers: apiHeaders(cookie: cookie))
@@ -428,7 +428,7 @@ public final class Pan115Provider: ShareResolveProvider, @unchecked Sendable {
         }
     }
 
-    private func refreshClientVersionIfNeeded() async {
+    internal func refreshClientVersionIfNeeded() async {
         let shouldFetch: Bool = {
             versionLock.lock()
             defer { versionLock.unlock() }
@@ -454,7 +454,7 @@ public final class Pan115Provider: ShareResolveProvider, @unchecked Sendable {
         var errorDescription: String? { message }
     }
 
-    private func apiHeaders(cookie: String) -> [String: String] {
+    internal func apiHeaders(cookie: String) -> [String: String] {
         var h: [String: String] = [
             "User-Agent": Pan115Constants.webUA,
             "Referer": Pan115Constants.referer,
@@ -467,20 +467,20 @@ public final class Pan115Provider: ShareResolveProvider, @unchecked Sendable {
         return h
     }
 
-    private func formHeaders(cookie: String) -> [String: String] {
+    internal func formHeaders(cookie: String) -> [String: String] {
         var h = apiHeaders(cookie: cookie)
         h["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8"
         return h
     }
 
-    private func parseJSON(_ resp: HTTPResponseData) throws -> [String: Any] {
+    internal func parseJSON(_ resp: HTTPResponseData) throws -> [String: Any] {
         guard let obj = try? JSONSerialization.jsonObject(with: resp.body) as? [String: Any] else {
             throw HTTPClientError.invalidJSON(resp.statusCode)
         }
         return obj
     }
 
-    private func checkState(_ json: [String: Any], fallback: String) throws {
+    internal func checkState(_ json: [String: Any], fallback: String) throws {
         let state = (json["state"] as? Bool) ?? (intValue(json["state"]) == 1)
         let errno = intValue(json["errno"])
         if state && errno == 0 { return }
@@ -501,25 +501,25 @@ public final class Pan115Provider: ShareResolveProvider, @unchecked Sendable {
         throw Pan115ApiError(errno: errno, message: mapped)
     }
 
-    private func urlEncode(_ s: String) -> String {
+    internal func urlEncode(_ s: String) -> String {
         var allowed = CharacterSet.alphanumerics
         allowed.insert(charactersIn: "-._~")
         return s.addingPercentEncoding(withAllowedCharacters: allowed) ?? s
     }
 
-    private func stringValue(_ v: Any?) -> String {
+    internal func stringValue(_ v: Any?) -> String {
         if let s = v as? String { return s }
         if let n = v as? NSNumber { return n.stringValue }
         return ""
     }
 
-    private func intValue(_ v: Any?) -> Int {
+    internal func intValue(_ v: Any?) -> Int {
         if let n = v as? NSNumber { return n.intValue }
         if let s = v as? String, let i = Int(s) { return i }
         return 0
     }
 
-    private func int64Value(_ v: Any?) -> Int64 {
+    internal func int64Value(_ v: Any?) -> Int64 {
         if let n = v as? NSNumber { return n.int64Value }
         if let s = v as? String, let i = Int64(s) { return i }
         return 0

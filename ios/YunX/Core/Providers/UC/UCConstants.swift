@@ -22,10 +22,22 @@ public enum UCConstants {
     public static let cookieDomains = ["drive.uc.cn", "uc.cn", "pc-api.uc.cn"]
     public static let accountInfoURL = "https://drive.uc.cn/account/info"
 
+    public static let cloudUA =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) uc-cloud-drive/1.6.1 Chrome/100.0.4896.160 Electron/18.3.5.16-b62cf9c50d Safari/537.36 Channel/ucpan_other_ch"
+    public static let thumbnailHost = "pc-api.uc.cn"
+
     public static let apiBase = "https://pc-api.uc.cn"
     public static let shareTokenURL = "\(apiBase)/1/clouddrive/share/sharepage/token?pr=UCBrowser&fr=pc"
     public static let transferShareDetailURL = "\(apiBase)/1/clouddrive/transfer_share/detail?entry=ft&fr=pc&pr=UCBrowser"
     public static let downloadURL = "\(apiBase)/1/clouddrive/file/download?entry=ft&fr=pc&pr=UCBrowser"
+    public static let cloudDownloadURL = "\(apiBase)/1/clouddrive/file/download"
+    public static let cloudFileSortURL = "\(apiBase)/1/clouddrive/file/sort?pr=UCBrowser&fr=pc"
+    public static let fileURL = "\(apiBase)/1/clouddrive/file?pr=UCBrowser&fr=pc"
+    public static let saveURL = "\(apiBase)/1/clouddrive/share/sharepage/save?pr=UCBrowser&fr=pc"
+    public static let taskURL = "\(apiBase)/1/clouddrive/task?pr=UCBrowser&fr=pc"
+    public static let renameURL = "\(apiBase)/1/clouddrive/file/rename?pr=UCBrowser&fr=pc"
+    public static let deleteURL = "\(apiBase)/1/clouddrive/file/delete?pr=UCBrowser&fr=pc"
+    public static let memberURL = "\(apiBase)/1/clouddrive/member?pr=UCBrowser&fr=pc&fetch_subscribe=true&_ch=home"
     public static let videoPreviewURL = "\(apiBase)/1/clouddrive/share/sharepage/video_preview"
     public static let configURL = "\(apiBase)/1/clouddrive/config?pr=UCBrowser&fr=pc"
 

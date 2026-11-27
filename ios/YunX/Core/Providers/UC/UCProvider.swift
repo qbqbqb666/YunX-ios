@@ -16,7 +16,7 @@ public final class UCProvider: ShareResolveProvider, @unchecked Sendable {
 
     private static let videoExtensions: Set<String> = ["mp4", "mkv", "mov", "avi", "webm", "flv", "ts", "m3u8", "wmv", "rmvb"]
 
-    private let http: HTTPClient
+    internal let http: HTTPClient
     private let lock = NSLock()
     private var guestPugs: String = ""
     public var onCookieRefreshed: (@Sendable (_ merged: String, _ requestCookie: String) -> Void)?
@@ -253,7 +253,7 @@ public final class UCProvider: ShareResolveProvider, @unchecked Sendable {
         )
     }
 
-    private func unwrapEnvelope(resp: HTTPResponseData, originalCookie: String) throws -> [String: Any] {
+    internal func unwrapEnvelope(resp: HTTPResponseData, originalCookie: String) throws -> [String: Any] {
         if !originalCookie.isEmpty {
             let merged = CookieHelper.merge(original: originalCookie, setCookies: resp.setCookies)
             if merged != originalCookie { onCookieRefreshed?(merged, originalCookie) }
@@ -290,7 +290,7 @@ public final class UCProvider: ShareResolveProvider, @unchecked Sendable {
         lock.unlock()
     }
 
-    private static func stringValue(_ any: Any?) -> String {
+    internal static func stringValue(_ any: Any?) -> String {
         if let s = any as? String { return s }
         if let n = any as? NSNumber { return n.stringValue }
         return ""

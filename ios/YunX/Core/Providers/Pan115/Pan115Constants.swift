@@ -16,8 +16,10 @@ public enum Pan115Constants {
 
     // 接口端点
     public static let userInfoURL = "\(apiBase)/user/info?ct=json"
+    public static let indexInfoURL = "\(apiBase)/files/index_info?count_space_nums=1"
     public static let filesURL = "\(apiBase)/files"
     public static let fileAddURL = "\(apiBase)/files/add"
+    public static let fileRenameURL = "\(apiBase)/files/batch_rename"
     public static let fileDeleteURL = "\(apiBase)/rb/delete"
     public static let fileDownloadURL = "\(apiBase)/files/download"
     public static let appDownloadURL = "https://proapi.115.com/app/chrome/downurl"

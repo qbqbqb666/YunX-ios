@@ -362,7 +362,7 @@ public final class XunleiProvider: ShareResolveProvider, @unchecked Sendable {
         let nextPageToken: String
     }
 
-    private func prepareValidPayload(rawCredential: String) async -> XunleiCredentialPayload? {
+    internal func prepareValidPayload(rawCredential: String) async -> XunleiCredentialPayload? {
         guard let payload = XunleiCredentialPayload.decode(from: rawCredential) else { return nil }
         let exp = XunleiSigner.jwtExp(payload.accessToken)
         let now = Int64(Date().timeIntervalSince1970)
@@ -438,14 +438,14 @@ public final class XunleiProvider: ShareResolveProvider, @unchecked Sendable {
         return id
     }
 
-    private func listPersonalFiles(parentId: String, payload: XunleiCredentialPayload) async throws -> [ShareFile] {
+    internal func listPersonalFiles(parentId: String, payload: XunleiCredentialPayload) async throws -> [ShareFile] {
         let filters = urlEncode("{\"trashed\":{\"eq\":false}}")
         let url = "\(XunleiConstants.filesURL)?parent_id=\(urlEncode(parentId))&limit=100&with_audit=true&filters=\(filters)&thumbnail_size=SIZE_SMALL"
         let json = try await panRequestJSON(url: url, method: "GET", body: nil, action: "GET:/drive/v1/files", payload: payload)
         return parseFiles(json["files"] as? [[String: Any]] ?? [])
     }
 
-    private func restoreShare(
+    internal func restoreShare(
         shareId: String,
         passCodeToken: String,
         fileIds: [String],
@@ -495,7 +495,7 @@ public final class XunleiProvider: ShareResolveProvider, @unchecked Sendable {
         return []
     }
 
-    private func getFileDownloadLink(fileId: String, fallbackName: String, fallbackSize: Int64, payload: XunleiCredentialPayload) async throws -> DownloadLink {
+    internal func getFileDownloadLink(fileId: String, fallbackName: String, fallbackSize: Int64, payload: XunleiCredentialPayload) async throws -> DownloadLink {
         let url = "\(XunleiConstants.filesURL)/\(urlEncode(fileId))?space="
         let json = try await panRequestJSON(url: url, method: "GET", body: nil, action: "GET:/drive/v1/files", payload: payload)
         let links = json["links"] as? [String: Any]
@@ -525,7 +525,7 @@ public final class XunleiProvider: ShareResolveProvider, @unchecked Sendable {
     }
 
     /// 统一 Pan 请求：支持匿名（不带 Authorization）以及 captcha_invalid 自动重签重试 1 次
-    private func panRequestJSON(
+    internal func panRequestJSON(
         url: String,
         method: String,
         body: [String: Any]?,
@@ -653,19 +653,19 @@ public final class XunleiProvider: ShareResolveProvider, @unchecked Sendable {
         }
     }
 
-    private func urlEncode(_ s: String) -> String {
+    internal func urlEncode(_ s: String) -> String {
         var allowed = CharacterSet.alphanumerics
         allowed.insert(charactersIn: "-._~")
         return s.addingPercentEncoding(withAllowedCharacters: allowed) ?? s
     }
 
-    private func stringValue(_ v: Any?) -> String {
+    internal func stringValue(_ v: Any?) -> String {
         if let s = v as? String { return s }
         if let n = v as? NSNumber { return n.stringValue }
         return ""
     }
 
-    private func int64Value(_ v: Any?) -> Int64 {
+    internal func int64Value(_ v: Any?) -> Int64 {
         if let n = v as? NSNumber { return n.int64Value }
         if let s = v as? String, let i = Int64(s) { return i }
         return 0

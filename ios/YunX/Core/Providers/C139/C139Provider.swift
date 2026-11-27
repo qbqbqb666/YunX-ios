@@ -12,7 +12,7 @@ import Foundation
 
 public final class C139Provider: ShareResolveProvider, Sendable {
     public let platform: SharePlatform = .c139
-    private let http: HTTPClient
+    internal let http: HTTPClient
 
     public init(http: HTTPClient = .shared) {
         self.http = http
@@ -201,7 +201,7 @@ public final class C139Provider: ShareResolveProvider, Sendable {
         return try decodeResponseJSON(resp)
     }
 
-    private func sharePostEncrypted(url: String, plainBody: String, authorization: String?) async throws -> [String: Any] {
+    internal func sharePostEncrypted(url: String, plainBody: String, authorization: String?) async throws -> [String: Any] {
         let encrypted = try C139Crypto.encryptBody(plainBody)
         var headers: [String: String] = [
             "hcy-cool-flag": "1",
@@ -249,24 +249,24 @@ public final class C139Provider: ShareResolveProvider, Sendable {
         throw ProviderError.apiMessage(desc.isEmpty ? "\(fallback)（错误码 \(code)）" : desc)
     }
 
-    private func compactJSONString(_ obj: [String: Any]) throws -> String {
+    internal func compactJSONString(_ obj: [String: Any]) throws -> String {
         let data = try JSONSerialization.data(withJSONObject: obj, options: [.withoutEscapingSlashes])
         return String(data: data, encoding: .utf8) ?? "{}"
     }
 
-    private func stringValue(_ v: Any?) -> String {
+    internal func stringValue(_ v: Any?) -> String {
         if let s = v as? String { return s }
         if let n = v as? NSNumber { return n.stringValue }
         return ""
     }
 
-    private func intValue(_ v: Any?, default def: Int = 0) -> Int {
+    internal func intValue(_ v: Any?, default def: Int = 0) -> Int {
         if let n = v as? NSNumber { return n.intValue }
         if let s = v as? String, let i = Int(s) { return i }
         return def
     }
 
-    private func int64Value(_ v: Any?) -> Int64 {
+    internal func int64Value(_ v: Any?) -> Int64 {
         if let n = v as? NSNumber { return n.int64Value }
         if let s = v as? String, let i = Int64(s) { return i }
         return 0

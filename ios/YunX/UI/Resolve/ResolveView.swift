@@ -58,10 +58,24 @@ struct ResolveView: View {
                     onDownloadFolder: {
                         viewModel.selectedFileForSheet = nil
                         Task { await viewModel.downloadFolder(file) }
+                    },
+                    onTransferToCloud: {
+                        viewModel.selectedFileForSheet = nil
+                        viewModel.beginTransferToCloud(file)
                     }
                 )
-                .presentationDetents([.height(260)])
+                .presentationDetents([.height(310)])
                 .presentationDragIndicator(.visible)
+            }
+            .sheet(item: $viewModel.transferTargetFile) { file in
+                if let session = viewModel.session {
+                    TransferTargetSheet(
+                        container: container,
+                        session: session,
+                        file: file,
+                        onTransferred: {}
+                    )
+                }
             }
             .sheet(item: Binding(
                 get: { viewModel.fetchedLink.map { IdentifiableDownloadLink(link: $0) } },

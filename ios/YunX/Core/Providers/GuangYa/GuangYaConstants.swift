@@ -79,6 +79,7 @@ public enum GuangYaConstants {
     public static let verificationVerifyURL = "\(accountBase)/v1/auth/verification/verify"
 
     // 业务端点
+    public static let getAssetsURL = "\(apiBase)/assets/v1/get_assets"
     public static let shareSummaryURL = "\(apiBase)/userres/v1/get_share_summary"
     public static let shareAccessTokenURL = "\(apiBase)/userres/v1/get_share_access_token"
     public static let shareFilesURL = "\(apiBase)/userres/v1/get_share_page_files_list"
@@ -86,6 +87,7 @@ public enum GuangYaConstants {
     public static let restoreShareURL = "\(apiBase)/userres/v1/restore_share"
     public static let fileListURL = "\(apiBase)/userres/v1/file/get_file_list"
     public static let createDirURL = "\(apiBase)/userres/v1/file/create_dir"
+    public static let renameURL = "\(apiBase)/userres/v1/file/rename"
     public static let deleteFileURL = "\(apiBase)/userres/v1/file/delete_file"
     public static let resDownloadURL = "\(apiBase)/userres/v1/get_res_download_url"
     public static let taskStatusURL = "\(apiBase)/userres/v1/get_task_status"

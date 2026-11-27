@@ -14,7 +14,7 @@ import Foundation
 public final class QuarkProvider: ShareResolveProvider, @unchecked Sendable {
     public let platform: SharePlatform = .quark
 
-    private let http: HTTPClient
+    internal let http: HTTPClient
     private let lock = NSLock()
     private var guestPugs: String = ""
     public var onCookieRefreshed: (@Sendable (_ merged: String, _ requestCookie: String) -> Void)?
@@ -197,7 +197,7 @@ public final class QuarkProvider: ShareResolveProvider, @unchecked Sendable {
 
     // MARK: - 内部请求封装
 
-    private func requestDownloadLink(cookie: String, payload: [String: Any], isGuest: Bool) async throws -> DownloadLink {
+    internal func requestDownloadLink(cookie: String, payload: [String: Any], isGuest: Bool) async throws -> DownloadLink {
         let bodyData = try JSONSerialization.data(withJSONObject: payload)
         var headers = [
             "User-Agent": QuarkConstants.apiUserAgent,
@@ -270,7 +270,7 @@ public final class QuarkProvider: ShareResolveProvider, @unchecked Sendable {
         return try await createFolder(name: QuarkConstants.tempDirName, parentFid: QuarkConstants.defaultPdirFid, cookie: cookie)
     }
 
-    private func createFolder(name: String, parentFid: String, cookie: String) async throws -> String {
+    internal func createFolder(name: String, parentFid: String, cookie: String) async throws -> String {
         let payload: [String: Any] = [
             "pdir_fid": parentFid,
             "file_name": name,
@@ -284,7 +284,7 @@ public final class QuarkProvider: ShareResolveProvider, @unchecked Sendable {
         return fid
     }
 
-    private func saveShareFile(session: ShareSession, file: ShareFile, toDirFid: String, cookie: String) async throws -> String {
+    internal func saveShareFile(session: ShareSession, file: ShareFile, toDirFid: String, cookie: String) async throws -> String {
         let payload: [String: Any] = [
             "pwd_id": session.shareId,
             "stoken": session.stoken,
@@ -301,7 +301,7 @@ public final class QuarkProvider: ShareResolveProvider, @unchecked Sendable {
         return taskId
     }
 
-    private func pollTransferTask(taskId: String, cookie: String) async throws -> String {
+    internal func pollTransferTask(taskId: String, cookie: String) async throws -> String {
         let encoded = taskId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? taskId
         let url = "\(QuarkConstants.taskURL)&task_id=\(encoded)&retry_index=0"
         let headers = ["Cookie": cookie, "User-Agent": QuarkConstants.apiUserAgent]
@@ -323,12 +323,12 @@ public final class QuarkProvider: ShareResolveProvider, @unchecked Sendable {
         throw ProviderError.missingData("夸克临时转存轮询超时")
     }
 
-    private func getJSONData(url: String, headers: [String: String], originalCookie: String) async throws -> [String: Any] {
+    internal func getJSONData(url: String, headers: [String: String], originalCookie: String) async throws -> [String: Any] {
         let resp = try await http.send(url: url, method: "GET", headers: headers)
         return try unwrapEnvelope(resp: resp, originalCookie: originalCookie)
     }
 
-    private func postJSONData(url: String, cookie: String, body: [String: Any]) async throws -> [String: Any] {
+    internal func postJSONData(url: String, cookie: String, body: [String: Any]) async throws -> [String: Any] {
         let bodyData = try JSONSerialization.data(withJSONObject: body)
         var headers = [
             "User-Agent": QuarkConstants.apiUserAgent,
@@ -371,7 +371,7 @@ public final class QuarkProvider: ShareResolveProvider, @unchecked Sendable {
         lock.unlock()
     }
 
-    private static func stringValue(_ any: Any?) -> String {
+    internal static func stringValue(_ any: Any?) -> String {
         if let s = any as? String { return s }
         if let n = any as? NSNumber { return n.stringValue }
         return ""

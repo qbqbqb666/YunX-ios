@@ -12,9 +12,10 @@ struct FileActionSheet: View {
     let platform: SharePlatform
     let onDownload: () -> Void
     let onDownloadFolder: () -> Void
+    let onTransferToCloud: (() -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
                 FileTypeIconView(fileName: file.fname, isDir: file.isdir)
                 VStack(alignment: .leading, spacing: 4) {
@@ -49,6 +50,16 @@ struct FileActionSheet: View {
                         .padding(.vertical, 12)
                 }
                 .buttonStyle(.borderedProminent)
+            }
+
+            if let onTransferToCloud, platform.supportsCloudDrive {
+                Button(action: onTransferToCloud) {
+                    Label("转存到我的\(platform.displayName)", systemImage: "tray.and.arrow.down.fill")
+                        .font(.body.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                }
+                .buttonStyle(.bordered)
             }
             Spacer()
         }
