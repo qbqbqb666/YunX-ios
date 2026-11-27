@@ -57,6 +57,7 @@ struct SettingsView: View {
                     }
                     Toggle("自动检测剪贴板链接", isOn: $settings.clipboardDetectEnabled)
                     Toggle("文件名多行完整显示", isOn: $settings.fileNameMultiLine)
+                    Toggle("列表图片缩略图预览", isOn: $settings.cloudThumbnailsEnabled)
                 }
 
                 Section("数据与存储") {
@@ -73,10 +74,13 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Button("清理无效分片缓存") {
+                    Button("清理无效分片与缩略图缓存") {
                         container.downloadManager.clearTempCache()
-                        refreshDiskUsage()
-                        container.toast.show("已清理闲置分片缓存")
+                        Task {
+                            await ThumbnailLoader.shared.clearCache()
+                            refreshDiskUsage()
+                            container.toast.show("已清理闲置分片与缩略图缓存")
+                        }
                     }
                 }
 

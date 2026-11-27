@@ -88,6 +88,11 @@ public final class SettingsStore {
         didSet { defaults.set(fileNameMultiLine, forKey: Keys.fileNameMultiLine) }
     }
 
+    /// 列表图片缩略图异步预览（关闭后不发任何取图请求）
+    public var cloudThumbnailsEnabled: Bool {
+        didSet { defaults.set(cloudThumbnailsEnabled, forKey: Keys.cloudThumbnails) }
+    }
+
     /// 浅色 / 深色 / 跟随系统
     public var appearance: AppAppearance {
         didSet { defaults.set(appearance.rawValue, forKey: Keys.appearance) }
@@ -101,6 +106,7 @@ public final class SettingsStore {
         static let keepAwake = "yunx.settings.keep_awake"
         static let clipboardDetect = "yunx.settings.clipboard_detect"
         static let fileNameMultiLine = "yunx.settings.filename_multiline"
+        static let cloudThumbnails = "yunx.settings.cloud_thumbnails"
         static let appearance = "yunx.settings.appearance"
     }
 
@@ -115,6 +121,7 @@ public final class SettingsStore {
         self.keepScreenAwakeWhileDownloading = defaults.object(forKey: Keys.keepAwake) as? Bool ?? true
         self.clipboardDetectEnabled = defaults.object(forKey: Keys.clipboardDetect) as? Bool ?? true
         self.fileNameMultiLine = defaults.object(forKey: Keys.fileNameMultiLine) as? Bool ?? false
+        self.cloudThumbnailsEnabled = defaults.object(forKey: Keys.cloudThumbnails) as? Bool ?? true
         let rawAppearance = defaults.integer(forKey: Keys.appearance)
         self.appearance = AppAppearance(rawValue: rawAppearance) ?? .system
     }

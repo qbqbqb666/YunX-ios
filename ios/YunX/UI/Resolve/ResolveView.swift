@@ -349,7 +349,7 @@ struct ResolveView: View {
             } else {
                 List(viewModel.files) { file in
                     HStack(spacing: 12) {
-                        FileTypeIconView(fileName: file.fname, isDir: file.isdir)
+                        FileThumbnailView(file: file, enabled: container.settings.cloudThumbnailsEnabled)
                         VStack(alignment: .leading, spacing: 3) {
                             FileNameLabel(text: file.fname, multiLine: container.settings.fileNameMultiLine)
                             Text(file.isdir ? "文件夹" : Formatters.fileSize(file.fsize))
