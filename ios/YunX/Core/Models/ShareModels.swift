@@ -177,24 +177,54 @@ public struct DownloadLink: Equatable, Sendable {
     }
 }
 
-/// 平台账号记录（敏感凭证本体存 Keychain，此处仅存非敏感元数据 + 关联键）
+/// 平台账号记录（敏感凭证本体存 Keychain，此处仅存非敏感元数据 + 多账号槽位标识）
 public struct AccountRecord: Codable, Equatable, Identifiable, Sendable {
+    public let id: String
     public let platform: SharePlatform
     public var nickname: String
+    public var remark: String
     public var accountIdentifier: String
+    public var isPrimary: Bool
     public var updatedAt: Int64
 
-    public var id: String { platform.rawValue }
+    public var displayTitle: String {
+        if !remark.isEmpty { return remark }
+        if !nickname.isEmpty { return nickname }
+        if !accountIdentifier.isEmpty { return accountIdentifier }
+        return "默认账号"
+    }
 
     public init(
+        id: String? = nil,
         platform: SharePlatform,
         nickname: String = "",
+        remark: String = "",
         accountIdentifier: String = "",
+        isPrimary: Bool = true,
         updatedAt: Int64 = Int64(Date().timeIntervalSince1970 * 1000)
     ) {
+        self.id = id ?? platform.rawValue
         self.platform = platform
         self.nickname = nickname
+        self.remark = remark
         self.accountIdentifier = accountIdentifier
+        self.isPrimary = isPrimary
         self.updatedAt = updatedAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, platform, nickname, remark, accountIdentifier, isPrimary, updatedAt
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let platform = try c.decode(SharePlatform.self, forKey: .platform)
+        self.platform = platform
+        self.id = try c.decodeIfPresent(String.self, forKey: .id) ?? platform.rawValue
+        self.nickname = try c.decodeIfPresent(String.self, forKey: .nickname) ?? ""
+        self.remark = try c.decodeIfPresent(String.self, forKey: .remark) ?? ""
+        self.accountIdentifier = try c.decodeIfPresent(String.self, forKey: .accountIdentifier) ?? ""
+        self.isPrimary = try c.decodeIfPresent(Bool.self, forKey: .isPrimary) ?? true
+        self.updatedAt = try c.decodeIfPresent(Int64.self, forKey: .updatedAt) ?? Int64(Date().timeIntervalSince1970 * 1000)
     }
 }

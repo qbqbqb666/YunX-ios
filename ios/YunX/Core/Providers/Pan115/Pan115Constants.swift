@@ -20,12 +20,19 @@ public enum Pan115Constants {
     public static let filesURL = "\(apiBase)/files"
     public static let fileAddURL = "\(apiBase)/files/add"
     public static let fileRenameURL = "\(apiBase)/files/batch_rename"
+    public static let fileMoveURL = "\(apiBase)/files/move"
+    public static let moveProgressURL = "\(apiBase)/files/move_progress"
     public static let fileDeleteURL = "\(apiBase)/rb/delete"
     public static let fileDownloadURL = "\(apiBase)/files/download"
+    public static let uploadInitURL = "https://uplb.115.com/3.0/sampleinitupload.php"
+    public static let uploadMaxSize: Int64 = 5 * 1024 * 1024 * 1024
     public static let appDownloadURL = "https://proapi.115.com/app/chrome/downurl"
     public static let shareSnapURL = "\(apiBase)/share/snap"
     public static let shareDownloadURL = "\(apiBase)/share/downurl"
     public static let shareReceiveURL = "\(apiBase)/share/receive"
+    public static let allowProtocolURL = "\(apiBase)/user/allow_protocol"
+    public static let shareSendURL = "\(apiBase)/share/send"
+    public static let shareUpdateURL = "\(apiBase)/share/updateshare"
     public static let appVersionURL = "https://appversion.115.com/1/web/1.0/api/chrome"
 
     // 临时转存目录约定

@@ -9,6 +9,7 @@ import SwiftUI
 
 struct GuangYaLoginView: View {
     let container: AppContainer
+    var asNewAccount: Bool = false
     @Environment(\.dismiss) private var dismiss
 
     enum LoginMode: String, CaseIterable {
@@ -158,7 +159,8 @@ struct GuangYaLoginView: View {
                 platform: .guangya,
                 credential: result.payload.encodedString(),
                 nickname: result.nickname,
-                accountIdentifier: result.payload.account
+                accountIdentifier: result.payload.account,
+                asNewAccount: asNewAccount
             )
             container.toast.show("光鸭云盘登录成功：\(result.nickname)")
             dismiss()

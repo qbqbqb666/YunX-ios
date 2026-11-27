@@ -56,14 +56,9 @@ public enum SharePlatform: String, CaseIterable, Codable, Sendable, Identifiable
         }
     }
 
-    /// 当前已实现完整解析下载的平台（Phase 1 + Phase 2 全部 10 大平台）
+    /// 当前已实现完整解析下载的平台（全 11 大网盘平台）
     public var isSupported: Bool {
-        switch self {
-        case .quark, .uc, .pan123, .lanzou, .pan115, .c139, .xunlei, .guangya, .baidu, .github:
-            return true
-        case .ilanzou:
-            return false
-        }
+        true
     }
 
     /// 兼容旧属性名
@@ -72,7 +67,7 @@ public enum SharePlatform: String, CaseIterable, Codable, Sendable, Identifiable
     /// 未登录（游客）是否可直接获取分享下载直链
     public var supportsGuestDownload: Bool {
         switch self {
-        case .quark, .uc, .lanzou, .guangya, .github:
+        case .quark, .uc, .lanzou, .guangya, .ilanzou, .github:
             return true
         default:
             return false
@@ -103,7 +98,7 @@ public enum SharePlatform: String, CaseIterable, Codable, Sendable, Identifiable
         case .github:
             return "GitHub 支持免登录浏览仓库/Release 与高速下载；若触发 API 限流，可在「账号」页配置 Personal Access Token。"
         case .ilanzou:
-            return "蓝奏优享将在后续版本接入。"
+            return "蓝奏优享分享链接支持免登录直接解析与高速下载；登录账号可提升下载稳定性。"
         }
     }
 

@@ -24,7 +24,13 @@ public enum Pan123Constants {
     public static let fileDownloadInfoURL = "\(apiBase)/api/file/download_info"
     public static let fileTrashURL = "\(apiBase)/b/api/file/trash"
     public static let fileRenameURL = "\(apiBase)/b/api/file/rename"
+    public static let fileMoveURL = "\(apiBase)/b/api/file/mod_pid"
+    public static let shareCreateURL = "\(apiBase)/b/api/share/create"
     public static let fileUploadRequestURL = "\(apiBase)/b/api/file/upload_request"
+    public static let fileS3UploadAuthURL = "\(apiBase)/b/api/file/s3_upload_object/auth"
+    public static let fileS3ReparePartsURL = "\(apiBase)/b/api/file/s3_repare_upload_parts_batch"
+    public static let fileUploadCompleteURL = "\(apiBase)/b/api/file/upload_complete"
+    public static let fileUploadCompleteV2URL = "\(apiBase)/b/api/file/upload_complete/v2"
     public static let userInfoURL = "\(apiBase)/b/api/user/info"
 
     public static let webUA =

@@ -68,4 +68,44 @@ final class Phase3CloudDriveTests: XCTestCase {
         XCTAssertTrue(devuid.hasSuffix("|0"))
         XCTAssertEqual(devuid.count, 34)
     }
+
+    func testCloudShareExpireMappingsAndFormatting() {
+        XCTAssertEqual(CloudShareExpire.forever.daysOrNull, nil)
+        XCTAssertEqual(CloudShareExpire.oneDay.daysOrNull, 1)
+        XCTAssertEqual(CloudShareExpire.sevenDays.daysOrNull, 7)
+        XCTAssertEqual(CloudShareExpire.thirtyDays.daysOrNull, 30)
+
+        XCTAssertEqual(CloudShareExpire.forever.baiduPeriod, 0)
+        XCTAssertEqual(CloudShareExpire.sevenDays.baiduPeriod, 7)
+        XCTAssertEqual(CloudShareExpire.forever.xunleiDays, "-1")
+        XCTAssertEqual(CloudShareExpire.thirtyDays.xunleiDays, "30")
+        XCTAssertEqual(CloudShareExpire.forever.pan115Duration, "-1")
+        XCTAssertEqual(CloudShareExpire.threeDays.pan115Duration, "3")
+        XCTAssertEqual(CloudShareExpire.fifteenDays.pan115Duration, "15")
+        XCTAssertEqual(CloudShareExpire.forever.pan123ExpirationString(), "2099-12-12T08:00:00+08:00")
+
+        XCTAssertEqual(CloudShareExpire.options(for: .pan115).count, 5)
+        XCTAssertEqual(CloudShareExpire.options(for: .quark).count, 4)
+
+        let res = CloudShareResult(
+            platform: .quark,
+            shareUrl: "https://pan.quark.cn/s/abc123",
+            passcode: "8k9p",
+            pwdId: "abc123",
+            title: "测试文档.pdf",
+            expire: .sevenDays
+        )
+        XCTAssertTrue(res.formattedCopyText.contains("https://pan.quark.cn/s/abc123"))
+        XCTAssertTrue(res.formattedCopyText.contains("提取码：8k9p"))
+    }
+
+    func testBaiduPathAndFsIdHelpers() {
+        let dir = ShareFile(fid: "/文档/设计", fname: "设计", fsize: 0, isdir: true, pdirFid: "/文档", fidToken: "987654321")
+        XCTAssertEqual(BaiduProvider.baiduPath(of: dir), "/文档/设计")
+        XCTAssertEqual(BaiduProvider.baiduFsId(of: dir), "987654321")
+
+        let file = ShareFile(fid: "123456789", fname: "a.pdf", fsize: 100, isdir: false, pdirFid: "/文档", fidToken: "/文档/a.pdf")
+        XCTAssertEqual(BaiduProvider.baiduPath(of: file), "/文档/a.pdf")
+        XCTAssertEqual(BaiduProvider.baiduFsId(of: file), "123456789")
+    }
 }

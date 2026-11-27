@@ -12,6 +12,7 @@ import WebKit
 struct WebLoginView: View {
     let container: AppContainer
     let platform: SharePlatform
+    var asNewAccount: Bool = false
     @Environment(\.dismiss) private var dismiss
 
     @State private var webViewRef: WKWebView?
@@ -135,7 +136,7 @@ struct WebLoginView: View {
             defer { isVerifying = false }
             let nick = await container.pan123Provider.fetchNickname(credential: token)
             if let nick {
-                container.accountStore.saveAccount(platform: .pan123, credential: token, nickname: nick)
+                container.accountStore.saveAccount(platform: .pan123, credential: token, nickname: nick, asNewAccount: asNewAccount)
                 container.toast.show("123 云盘登录成功：\(nick)")
                 dismiss()
             } else if !silent {
@@ -179,14 +180,14 @@ struct WebLoginView: View {
 
         if let provider = container.provider(for: platform),
            let nickname = await provider.fetchNickname(credential: cookieStr) {
-            container.accountStore.saveAccount(platform: platform, credential: cookieStr, nickname: nickname)
+            container.accountStore.saveAccount(platform: platform, credential: cookieStr, nickname: nickname, asNewAccount: asNewAccount)
             container.toast.show("\(platform.displayName)登录成功：\(nickname)")
             dismiss()
         } else {
             statusHint = "已获取 Cookie，等待官方接口确认…"
             if !silent {
                 // 用户手动点击保存时兜底落库，避免因接口波动无法保存
-                container.accountStore.saveAccount(platform: platform, credential: cookieStr)
+                container.accountStore.saveAccount(platform: platform, credential: cookieStr, asNewAccount: asNewAccount)
                 container.toast.show("已保存\(platform.displayName) Cookie")
                 dismiss()
             }

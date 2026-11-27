@@ -88,8 +88,13 @@ public enum GuangYaConstants {
     public static let fileListURL = "\(apiBase)/userres/v1/file/get_file_list"
     public static let createDirURL = "\(apiBase)/userres/v1/file/create_dir"
     public static let renameURL = "\(apiBase)/userres/v1/file/rename"
+    public static let moveFileURL = "\(apiBase)/userres/v1/file/move_file"
+    public static let shareFileURL = "\(apiBase)/userres/v1/share_file"
     public static let deleteFileURL = "\(apiBase)/userres/v1/file/delete_file"
     public static let resDownloadURL = "\(apiBase)/userres/v1/get_res_download_url"
+    public static let uploadTokenURL = "\(apiBase)/nd.bizuserres.s/v1/get_res_center_token"
+    public static let uploadTaskInfoURL = "\(apiBase)/nd.bizuserres.s/v1/file/get_info_by_task_id"
+    public static let uploadPendingCodes: Set<String> = ["145", "146", "147", "155", "163"]
     public static let taskStatusURL = "\(apiBase)/userres/v1/get_task_status"
 
     public static let pageSize = 100

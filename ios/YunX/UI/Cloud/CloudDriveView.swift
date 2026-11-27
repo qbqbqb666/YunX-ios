@@ -5,7 +5,9 @@
 //  个人云盘 Tab 主界面：已登录网盘切换、空间配额条、面包屑导航、新建文件夹、重命名、删除与多线程高速下载。
 //
 
+import PhotosUI
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct CloudDriveView: View {
     let container: AppContainer
@@ -14,8 +16,15 @@ struct CloudDriveView: View {
     @State private var showCreateFolderAlert = false
     @State private var newFolderName = ""
 
+    @State private var showFileImporter = false
+    @State private var showPhotoPicker = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
+
     @State private var renameTarget: ShareFile?
     @State private var renameInput = ""
+
+    @State private var moveTarget: ShareFile?
+    @State private var shareTarget: ShareFile?
 
     @State private var deleteTarget: ShareFile?
 
@@ -33,12 +42,29 @@ struct CloudDriveView: View {
             .toolbar {
                 if viewModel.selectedPlatform != nil {
                     ToolbarItemGroup(placement: .topBarTrailing) {
-                        Button {
-                            newFolderName = ""
-                            showCreateFolderAlert = true
+                        Menu {
+                            Button {
+                                showFileImporter = true
+                            } label: {
+                                Label("从「文件」上传", systemImage: "doc.badge.arrow.up")
+                            }
+                            Button {
+                                showPhotoPicker = true
+                            } label: {
+                                Label("从「相册」上传", systemImage: "photo.badge.arrow.down")
+                            }
+                            Divider()
+                            Button {
+                                newFolderName = ""
+                                showCreateFolderAlert = true
+                            } label: {
+                                Label("新建文件夹", systemImage: "folder.badge.plus")
+                            }
                         } label: {
-                            Image(systemName: "folder.badge.plus")
+                            Image(systemName: "plus.circle")
                         }
+                        .disabled(viewModel.uploadingFileName != nil)
+
                         Button {
                             Task { await viewModel.refresh() }
                         } label: {
@@ -86,6 +112,47 @@ struct CloudDriveView: View {
                 }
                 Button("取消", role: .cancel) { deleteTarget = nil }
             }
+            .sheet(item: $moveTarget) { target in
+                if let platform = viewModel.selectedPlatform {
+                    MoveTargetSheet(
+                        container: container,
+                        platform: platform,
+                        file: target,
+                        onMoved: {
+                            Task { await viewModel.refresh() }
+                        }
+                    )
+                }
+            }
+            .sheet(item: $shareTarget) { target in
+                if let platform = viewModel.selectedPlatform {
+                    CreateShareSheet(
+                        container: container,
+                        platform: platform,
+                        file: target
+                    )
+                }
+            }
+            .fileImporter(
+                isPresented: $showFileImporter,
+                allowedContentTypes: [.item],
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    if let url = urls.first {
+                        viewModel.uploadLocalFile(url: url)
+                    }
+                case .failure(let error):
+                    container.toast.show("选择文件失败：\(error.localizedDescription)")
+                }
+            }
+            .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .any(of: [.images, .videos]))
+            .onChange(of: selectedPhotoItem) { _, newItem in
+                guard let item = newItem else { return }
+                selectedPhotoItem = nil
+                Task { await handlePickedPhoto(item) }
+            }
             .overlay {
                 if viewModel.isActing {
                     ZStack {
@@ -103,8 +170,13 @@ struct CloudDriveView: View {
             .task {
                 await viewModel.syncPlatformSelectionIfNeeded()
             }
-            .onChange(of: container.accountStore.accounts.count) { _, _ in
-                Task { await viewModel.syncPlatformSelectionIfNeeded() }
+            .onChange(of: container.accountStore.revision) { _, _ in
+                Task {
+                    await viewModel.syncPlatformSelectionIfNeeded()
+                    if viewModel.selectedPlatform != nil {
+                        await viewModel.refresh()
+                    }
+                }
             }
         }
     }
@@ -204,6 +276,36 @@ struct CloudDriveView: View {
 
             Divider()
 
+            // 上传进度条横幅
+            if let fileName = viewModel.uploadingFileName, let progress = viewModel.uploadProgress {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .foregroundStyle(Color.yunxBrand)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(fileName)
+                                .font(.caption.weight(.semibold))
+                                .lineLimit(1)
+                            Text("\(progress.phase.label) \(Int(progress.fraction * 100))%（\(Formatters.fileSize(progress.sentBytes)) / \(Formatters.fileSize(progress.totalBytes))）")
+                                .font(.caption2.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("取消", role: .destructive) {
+                            viewModel.cancelUpload()
+                        }
+                        .font(.caption.weight(.semibold))
+                        .buttonStyle(.bordered)
+                        .controlSize(.mini)
+                    }
+                    ProgressView(value: progress.fraction)
+                        .tint(Color.yunxBrand)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Color.yunxBrand.opacity(0.08))
+            }
+
             // 主列表区
             if viewModel.isLoading {
                 Spacer()
@@ -267,6 +369,16 @@ struct CloudDriveView: View {
                     }
                 }
                 Button {
+                    shareTarget = file
+                } label: {
+                    Label("创建分享链接", systemImage: "square.and.arrow.up")
+                }
+                Button {
+                    moveTarget = file
+                } label: {
+                    Label("移动到…", systemImage: "folder")
+                }
+                Button {
                     renameInput = file.fname
                     renameTarget = file
                 } label: {
@@ -292,6 +404,23 @@ struct CloudDriveView: View {
             } else {
                 Task { await viewModel.download(file: file) }
             }
+        }
+    }
+
+    private func handlePickedPhoto(_ item: PhotosPickerItem) async {
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self), !data.isEmpty else {
+                container.toast.show("无法读取所选相册内容")
+                return
+            }
+            let ext = item.supportedContentTypes.first?.preferredFilenameExtension ?? "jpg"
+            let fileName = "YunX_\(Int(Date().timeIntervalSince1970)).\(ext)"
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("yunx-picked-\(UUID().uuidString).\(ext)")
+            try data.write(to: tempURL, options: .atomic)
+            viewModel.uploadLocalFile(url: tempURL, suggestedName: fileName, cleanupAfterUpload: true)
+        } catch {
+            container.toast.show("读取相册文件失败：\(error.localizedDescription)")
         }
     }
 }

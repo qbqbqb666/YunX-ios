@@ -9,6 +9,7 @@ import SwiftUI
 
 struct XunleiLoginView: View {
     let container: AppContainer
+    var asNewAccount: Bool = false
     @Environment(\.dismiss) private var dismiss
 
     enum LoginMode: String, CaseIterable {
@@ -194,7 +195,8 @@ struct XunleiLoginView: View {
                 platform: .xunlei,
                 credential: payload.encodedString(),
                 nickname: nick,
-                accountIdentifier: acc
+                accountIdentifier: acc,
+                asNewAccount: asNewAccount
             )
             container.toast.show("迅雷登录成功：\(nick)")
             dismiss()

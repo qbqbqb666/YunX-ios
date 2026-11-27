@@ -9,6 +9,7 @@ import SwiftUI
 
 struct Pan123LoginView: View {
     let container: AppContainer
+    var asNewAccount: Bool = false
     @Environment(\.dismiss) private var dismiss
 
     @State private var account = ""
@@ -101,7 +102,8 @@ struct Pan123LoginView: View {
                 platform: .pan123,
                 credential: token,
                 nickname: nick,
-                accountIdentifier: account.trimmingCharacters(in: .whitespaces)
+                accountIdentifier: account.trimmingCharacters(in: .whitespaces),
+                asNewAccount: asNewAccount
             )
             container.toast.show("123 云盘登录成功：\(nick)")
             dismiss()

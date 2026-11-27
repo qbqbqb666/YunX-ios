@@ -10,6 +10,7 @@ import SwiftUI
 struct ManualCookieSheet: View {
     let container: AppContainer
     let platform: SharePlatform
+    var asNewAccount: Bool = false
     var onSaved: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
@@ -116,7 +117,7 @@ struct ManualCookieSheet: View {
         defer { isChecking = false }
 
         let nick = await container.provider(for: platform)?.fetchNickname(credential: cleaned)
-        container.accountStore.saveAccount(platform: platform, credential: cleaned, nickname: nick ?? "")
+        container.accountStore.saveAccount(platform: platform, credential: cleaned, nickname: nick ?? "", asNewAccount: asNewAccount)
         container.toast.show(nick != nil ? "已验证并保存：\(nick!)" : "已保存\(platform.displayName)凭证")
         dismiss()
         onSaved?()

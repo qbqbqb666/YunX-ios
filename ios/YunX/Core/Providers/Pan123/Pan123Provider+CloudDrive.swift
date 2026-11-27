@@ -123,6 +123,82 @@ extension Pan123Provider: CloudDriveProvider {
         try checkCodeZero(json, fallback: "123 云盘删除失败")
     }
 
+    public func moveCloudItems(files: [ShareFile], toDirFid: String, credential: String) async throws {
+        guard !credential.isEmpty else { throw ProviderError.loginRequired(.pan123) }
+        let list: [[String: Any]] = files.compactMap { f in
+            guard let id = Int64(f.fid) else { return nil }
+            return ["FileId": id]
+        }
+        guard !list.isEmpty else { return }
+        let body: [String: Any] = [
+            "fileIdList": list,
+            "parentFileId": Int64(toDirFid) ?? 0,
+            "event": "fileMove",
+            "operatePlace": 1,
+            "RequestSource": NSNull()
+        ]
+        let json = try await authPost(
+            url: Pan123Constants.fileMoveURL,
+            path: "/b/api/file/mod_pid",
+            body: body,
+            token: credential
+        )
+        try checkCodeZero(json, fallback: "123 云盘移动失败")
+    }
+
+    public func createCloudShare(
+        files: [ShareFile],
+        title: String,
+        expire: CloudShareExpire,
+        passcode: String?,
+        credential: String
+    ) async throws -> CloudShareResult {
+        guard !credential.isEmpty else { throw ProviderError.loginRequired(.pan123) }
+        let ids = files.compactMap { Int64($0.fid) }
+        guard !ids.isEmpty else { throw ProviderError.missingData("请选择要分享的文件") }
+        let cleanPwd = (passcode ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let shareName = title.isEmpty ? (files.first?.fname ?? "分享文件") : title
+        var body: [String: Any] = [
+            "driveId": 0,
+            "expiration": expire.pan123ExpirationString(),
+            "fileIdList": ids.count == 1 ? ids[0] : ids,
+            "shareName": shareName,
+            "event": "shareCreate",
+            "fileNum": ids.count,
+            "shareModality": 4,
+            "trafficLimitSwitch": 1,
+            "trafficLimit": 0,
+            "trafficSwitch": 1,
+            "fillPwdSwitch": 0
+        ]
+        if !cleanPwd.isEmpty {
+            body["sharePwd"] = cleanPwd
+        }
+        let json = try await authPost(
+            url: Pan123Constants.shareCreateURL,
+            path: "/b/api/share/create",
+            body: body,
+            token: credential
+        )
+        try checkCodeZero(json, fallback: "123 云盘创建分享失败")
+        guard let data = json["data"] as? [String: Any],
+              let shareKey = data["ShareKey"] as? String, !shareKey.isEmpty else {
+            throw ProviderError.missingData("123 云盘未返回 ShareKey")
+        }
+        let linkList = data["shareLinkList"] as? [String: Any]
+        let firstLink = (linkList?["list"] as? [String])?.first(where: { !$0.isEmpty })
+        let standBy = (linkList?["standBy"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        let shareUrl = firstLink ?? standBy ?? "https://www.123pan.com/s/\(shareKey)"
+        return CloudShareResult(
+            platform: .pan123,
+            shareUrl: shareUrl,
+            passcode: cleanPwd,
+            pwdId: shareKey,
+            title: shareName,
+            expire: expire
+        )
+    }
+
     public func getCloudDownloadLink(file: ShareFile, credential: String) async throws -> DownloadLink {
         guard !credential.isEmpty else { throw ProviderError.loginRequired(.pan123) }
         let parts = file.fidToken.split(separator: "|", omittingEmptySubsequences: false).map(String.init)
@@ -152,6 +228,138 @@ extension Pan123Provider: CloudDriveProvider {
         let decoded = Pan123Signer.decodeDownloadURL(raw) ?? raw
         let realUrl = await followRedirectURL(decoded)
         return DownloadLink(fid: file.fid, filename: file.fname, downloadUrl: realUrl, size: file.fsize)
+    }
+
+    public func uploadCloudFile(
+        source: UploadSource,
+        parentFid: String,
+        credential: String,
+        onProgress: @escaping @Sendable (UploadProgress) -> Void
+    ) async throws -> String? {
+        guard !credential.isEmpty else { throw ProviderError.loginRequired(.pan123) }
+        let io = UploadIO(source: source, onProgress: onProgress)
+        io.report(.preparing)
+        let etag = try io.digestHex(.md5)
+        let preBody: [String: Any] = [
+            "driveId": 0,
+            "duplicate": 1,
+            "etag": etag,
+            "fileName": source.fileName,
+            "parentFileId": Int64(parentFid) ?? 0,
+            "size": source.fileSize,
+            "type": 0
+        ]
+        let pre = try await authPost(
+            url: Pan123Constants.fileUploadRequestURL,
+            path: "/b/api/file/upload_request",
+            body: preBody,
+            token: credential
+        )
+        try checkCodeZero(pre, fallback: "创建 123 上传任务失败")
+        guard let data = pre["data"] as? [String: Any] else {
+            throw ProviderError.missingData("123 未返回上传任务信息")
+        }
+        let info = data["Info"] as? [String: Any]
+        let fileId = [info?["FileId"], data["FileId"], data["fileId"]]
+            .compactMap { ($0 as? String) ?? ($0 as? NSNumber)?.stringValue }
+            .first(where: { !$0.isEmpty && $0 != "0" }) ?? ""
+        guard !fileId.isEmpty else {
+            throw ProviderError.missingData("123 未返回上传文件 ID")
+        }
+        if (data["Reuse"] as? Bool) == true {
+            io.report(.finishing, sent: source.fileSize)
+            return fileId
+        }
+        let objectKey = data["Key"] as? String ?? ""
+        guard !objectKey.isEmpty else {
+            throw ProviderError.missingData("123 上传任务缺少对象 Key")
+        }
+
+        let accessKey = data["AccessKeyId"] as? String ?? ""
+        let secretKey = data["SecretAccessKey"] as? String ?? ""
+        let uploadId = data["UploadId"] as? String ?? ""
+        let directS3 = uploadId.isEmpty && !accessKey.isEmpty && !secretKey.isEmpty
+        if directS3 {
+            try await io.s3Multipart(
+                endpoint: data["EndPoint"] as? String ?? "",
+                bucket: data["Bucket"] as? String ?? "",
+                objectKey: objectKey,
+                accessKey: accessKey,
+                secretKey: secretKey,
+                region: "123pan",
+                securityToken: data["SessionToken"] as? String ?? "",
+                pathStyle: true
+            )
+            io.report(.finishing, sent: source.fileSize)
+            let completed = try await authPost(
+                url: Pan123Constants.fileUploadCompleteURL,
+                path: "/b/api/file/upload_complete",
+                body: ["fileId": Int64(fileId) ?? 0],
+                token: credential
+            )
+            try checkCodeZero(completed, fallback: "123 合并上传失败")
+            return fileId
+        }
+
+        guard !uploadId.isEmpty else {
+            throw ProviderError.missingData("123 缺少分片上传凭据")
+        }
+        let common: [String: Any] = [
+            "StorageNode": data["StorageNode"] ?? NSNull(),
+            "bucket": data["Bucket"] as? String ?? "",
+            "key": objectKey,
+            "uploadId": uploadId
+        ]
+        let chunkSize: Int64 = 16 * 1024 * 1024
+        let count = max(1, (source.fileSize + chunkSize - 1) / chunkSize)
+        for idx in 0..<count {
+            var partReq = common
+            partReq["partNumberStart"] = Int(idx + 1)
+            partReq["partNumberEnd"] = Int(idx + 2)
+            let single = count == 1
+            let resp = try await authPost(
+                url: single ? Pan123Constants.fileS3UploadAuthURL : Pan123Constants.fileS3ReparePartsURL,
+                path: single ? "/b/api/file/s3_upload_object/auth" : "/b/api/file/s3_repare_upload_parts_batch",
+                body: partReq,
+                token: credential
+            )
+            try checkCodeZero(resp, fallback: "获取 123 上传分片地址失败")
+            guard let rData = resp["data"] as? [String: Any],
+                  let urls = rData["presignedUrls"] as? [String: Any],
+                  let presigned = urls["\(idx + 1)"] as? String, !presigned.isEmpty else {
+                throw ProviderError.missingData("123 未返回有效分片上传地址")
+            }
+            let start = idx * chunkSize
+            let uploaded = try await io.send(
+                url: presigned,
+                method: "PUT",
+                start: start,
+                end: min(source.fileSize, start + chunkSize),
+                retries: 1
+            )
+            guard uploaded.isSuccessful else {
+                throw ProviderError.apiMessage("123 分片上传失败（HTTP \(uploaded.statusCode)）")
+            }
+        }
+        io.report(.finishing, sent: source.fileSize)
+        var completeBody = common
+        completeBody["fileId"] = Int64(fileId) ?? 0
+        completeBody["fileSize"] = source.fileSize
+        completeBody["isMultipart"] = count > 1
+        let completed = try await authPost(
+            url: Pan123Constants.fileUploadCompleteV2URL,
+            path: "/b/api/file/upload_complete/v2",
+            body: completeBody,
+            token: credential
+        )
+        try checkCodeZero(completed, fallback: "123 合并上传失败")
+        if let cData = completed["data"] as? [String: Any],
+           let fInfo = cData["file_info"] as? [String: Any],
+           let finalId = (fInfo["FileId"] as? String) ?? (fInfo["FileId"] as? NSNumber)?.stringValue,
+           !finalId.isEmpty && finalId != "0" {
+            return finalId
+        }
+        return fileId
     }
 
     /// 123 分享转存（mshare 子域，无需客户端签名）

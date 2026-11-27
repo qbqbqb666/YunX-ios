@@ -131,6 +131,110 @@ extension C139Provider: CloudDriveProvider {
         try checkCloud(json, fallback: "139 删除失败")
     }
 
+    public func moveCloudItems(files: [ShareFile], toDirFid: String, credential: String) async throws {
+        guard let authorization = C139Constants.extractAuthorization(credential) else {
+            throw ProviderError.loginRequired(.c139)
+        }
+        let ids = files.map(\.fid).filter { !$0.isEmpty }
+        guard !ids.isEmpty else { return }
+        let targetDir = toDirFid.isEmpty ? "/" : toDirFid
+        let req: [String: Any] = [
+            "fileIds": ids,
+            "toParentFileId": targetDir
+        ]
+        let json = try await cloudPost(
+            url: C139Constants.batchMoveURL,
+            plainBody: try compactJSONString(req),
+            authorization: authorization
+        )
+        try checkCloud(json, fallback: "139 移动失败")
+
+        let taskId = stringValue((json["data"] as? [String: Any])?["taskId"])
+        guard !taskId.isEmpty else { return }
+        for _ in 0..<15 {
+            try await Task.sleep(nanoseconds: 500_000_000)
+            guard let tJson = try? await cloudPost(
+                url: C139Constants.taskGetURL,
+                plainBody: try compactJSONString(["taskId": taskId]),
+                authorization: authorization
+            ), let tData = tJson["data"] as? [String: Any],
+               let info = tData["taskInfo"] as? [String: Any] else {
+                break
+            }
+            let status = stringValue(info["status"]).lowercased()
+            let progress = int64Value(info["progress"])
+            if progress >= 100 || status == "succeed" || status == "success" || status == "finished" || status == "failed" {
+                break
+            }
+        }
+    }
+
+    public func createCloudShare(
+        files: [ShareFile],
+        title: String,
+        expire: CloudShareExpire,
+        passcode: String?,
+        credential: String
+    ) async throws -> CloudShareResult {
+        guard let authorization = C139Constants.extractAuthorization(credential) else {
+            throw ProviderError.loginRequired(.c139)
+        }
+        guard let account = C139Constants.accountFromAuthorization(authorization) else {
+            throw ProviderError.apiMessage("139 账号信息解析失败，请重新登录")
+        }
+        let coIDLst = files.filter { !$0.isdir }.map(\.fid).filter { !$0.isEmpty }
+        let caIDLst = files.filter { $0.isdir }.map(\.fid).filter { !$0.isEmpty }
+        guard !coIDLst.isEmpty || !caIDLst.isEmpty else {
+            throw ProviderError.missingData("请选择要分享的文件")
+        }
+        let dedicatedName = title.isEmpty ? (files.first?.fname ?? "分享文件") : title
+        var getOutLinkReq: [String: Any] = [
+            "subLinkType": 0,
+            "encrypt": 1,
+            "coIDLst": coIDLst,
+            "caIDLst": caIDLst,
+            "pubType": 1,
+            "dedicatedName": dedicatedName,
+            "periodUnit": 1,
+            "viewerLst": [],
+            "extInfo": ["isWatermark": 0, "shareChannel": "3001"],
+            "commonAccountInfo": ["account": account, "accountType": 1]
+        ]
+        if let days = expire.daysOrNull {
+            getOutLinkReq["period"] = days
+        }
+        let plain = try compactJSONString(["getOutLinkReq": getOutLinkReq])
+        let resp = try await cloudPost(
+            url: C139Constants.outlinkCreateURL,
+            plainBody: plain,
+            authorization: authorization,
+            cookie: credential,
+            needSkey: true
+        )
+        let success = (resp["success"] as? Bool) ?? true
+        let code = stringValue(resp["code"])
+        guard success && code == "0" else {
+            let msg = stringValue(resp["message"])
+            throw ProviderError.apiMessage(msg.isEmpty ? "139 创建分享失败（\(code)）" : msg)
+        }
+        guard let data = resp["data"] as? [String: Any],
+              let outRes = data["getOutLinkRes"] as? [String: Any],
+              let setArr = outRes["getOutLinkResSet"] as? [[String: Any]],
+              let first = setArr.first else {
+            throw ProviderError.missingData("139 未返回分享链接")
+        }
+        let linkUrl = stringValue(first["linkUrl"])
+        guard !linkUrl.isEmpty else { throw ProviderError.missingData("139 未返回分享链接") }
+        return CloudShareResult(
+            platform: .c139,
+            shareUrl: linkUrl,
+            passcode: stringValue(first["passwd"]),
+            pwdId: stringValue(first["linkID"]),
+            title: dedicatedName,
+            expire: expire
+        )
+    }
+
     public func getCloudDownloadLink(file: ShareFile, credential: String) async throws -> DownloadLink {
         guard let authorization = C139Constants.extractAuthorization(credential) else {
             throw ProviderError.loginRequired(.c139)
@@ -145,6 +249,134 @@ extension C139Provider: CloudDriveProvider {
         let name = stringValue(data["name"]).isEmpty ? file.fname : stringValue(data["name"])
         let size = int64Value(data["size"]) > 0 ? int64Value(data["size"]) : file.fsize
         return DownloadLink(fid: file.fid, filename: name, downloadUrl: url, size: size)
+    }
+
+    public func uploadCloudFile(
+        source: UploadSource,
+        parentFid: String,
+        credential: String,
+        onProgress: @escaping @Sendable (UploadProgress) -> Void
+    ) async throws -> String? {
+        guard let authorization = C139Constants.extractAuthorization(credential) else {
+            throw ProviderError.loginRequired(.c139)
+        }
+        let io = UploadIO(source: source, onProgress: onProgress)
+        io.report(.preparing)
+        let hash = try io.digestHex(.sha256)
+        let partSize: Int64 = source.fileSize > 30 * 1024 * 1024 * 1024 ? 512 * 1024 * 1024 : 100 * 1024 * 1024
+        let count = max(1, (source.fileSize + partSize - 1) / partSize)
+        let partSpecs: [[String: Any]] = (0..<count).map { idx in
+            [
+                "partNumber": Int(idx + 1),
+                "partSize": min(source.fileSize - idx * partSize, partSize),
+                "parallelHashCtx": ["partOffset": idx * partSize]
+            ]
+        }
+        let targetDir = parentFid.isEmpty ? "/" : parentFid
+        let createReq: [String: Any] = [
+            "contentHash": hash,
+            "contentHashAlgorithm": "SHA256",
+            "contentType": "application/octet-stream",
+            "parallelUpload": false,
+            "partInfos": Array(partSpecs.prefix(100)),
+            "size": source.fileSize,
+            "parentFileId": targetDir,
+            "name": source.fileName,
+            "type": "file",
+            "fileRenameMode": "auto_rename"
+        ]
+        let created = try await cloudPost(
+            url: C139Constants.fileCreateURL,
+            plainBody: try compactJSONString(createReq),
+            authorization: authorization
+        )
+        try checkCloud(created, fallback: "创建 139 上传任务失败")
+        guard let cData = created["data"] as? [String: Any] else {
+            throw ProviderError.missingData("139 未返回上传任务信息")
+        }
+        if (cData["exist"] as? Bool) == true {
+            throw ProviderError.apiMessage("当前目录已存在同名文件")
+        }
+        let fileId = stringValue(cData["fileId"])
+        guard !fileId.isEmpty else {
+            throw ProviderError.missingData("139 未返回文件 ID")
+        }
+        if (cData["rapidUpload"] as? Bool) == true {
+            io.report(.finishing, sent: source.fileSize)
+            return fileId
+        }
+        let uploadId = stringValue(cData["uploadId"])
+        guard !uploadId.isEmpty else {
+            throw ProviderError.missingData("139 上传任务缺少 uploadId")
+        }
+
+        var batch = cData
+        var first = 0
+        while first < Int(count) {
+            if first > 0 {
+                let batchEnd = min(first + 100, partSpecs.count)
+                let req: [String: Any] = [
+                    "fileId": fileId,
+                    "uploadId": uploadId,
+                    "partInfos": Array(partSpecs[first..<batchEnd])
+                ]
+                let resp = try await cloudPost(
+                    url: C139Constants.fileUploadURLURL,
+                    plainBody: try compactJSONString(req),
+                    authorization: authorization
+                )
+                try checkCloud(resp, fallback: "获取 139 上传分片地址失败")
+                guard let bData = resp["data"] as? [String: Any] else {
+                    throw ProviderError.missingData("139 未返回分片地址")
+                }
+                batch = bData
+            }
+            guard let addresses = batch["partInfos"] as? [[String: Any]], !addresses.isEmpty else {
+                throw ProviderError.missingData("139 分片上传地址不完整")
+            }
+            for (offsetIdx, part) in addresses.enumerated() {
+                let partIdx = Int(int64Value(part["partNumber"])) - 1
+                guard partIdx == first + offsetIdx else {
+                    throw ProviderError.apiMessage("139 分片编号不匹配")
+                }
+                let uploadUrl = stringValue(part["uploadUrl"])
+                guard !uploadUrl.isEmpty else {
+                    throw ProviderError.missingData("139 分片缺少 uploadUrl")
+                }
+                let start = Int64(partIdx) * partSize
+                let resp = try await io.send(
+                    url: uploadUrl,
+                    method: "PUT",
+                    headers: [
+                        "Content-Type": "application/octet-stream",
+                        "Origin": "https://yun.139.com",
+                        "Referer": "https://yun.139.com/"
+                    ],
+                    contentType: "application/octet-stream",
+                    start: start,
+                    end: min(source.fileSize, start + partSize),
+                    retries: 1
+                )
+                guard resp.isSuccessful else {
+                    throw ProviderError.apiMessage("139 分片上传失败（HTTP \(resp.statusCode)）")
+                }
+            }
+            first += addresses.count
+        }
+        io.report(.finishing, sent: source.fileSize)
+        let completeReq: [String: Any] = [
+            "contentHash": hash,
+            "contentHashAlgorithm": "SHA256",
+            "fileId": fileId,
+            "uploadId": uploadId
+        ]
+        let completed = try await cloudPost(
+            url: C139Constants.fileUploadCompleteURL,
+            plainBody: try compactJSONString(completeReq),
+            authorization: authorization
+        )
+        try checkCloud(completed, fallback: "139 合并上传失败")
+        return fileId
     }
 
     public func transferShareItem(

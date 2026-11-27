@@ -110,6 +110,7 @@ public enum XunleiConstants {
     public static let shareDetailURL = "\(panBase)/drive/v1/share/detail"
     public static let restoreURL = "\(panBase)/drive/v1/share/restore"
     public static let tasksURL = "\(panBase)/drive/v1/tasks"
+    public static let moveURL = "\(panBase)/drive/v1/files:batchMove"
     public static let trashURL = "\(panBase)/drive/v1/files:batchTrash"
     public static let deleteURL = "\(panBase)/drive/v1/files:batchDelete"
     public static let tempDirName = "YunX临时转存"

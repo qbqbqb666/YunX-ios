@@ -135,6 +135,12 @@ public enum DownloadHeaderBuilder {
                 "User-Agent": GuangYaConstants.webUA,
                 "Referer": GuangYaConstants.downloadReferer
             ]
+        case .ilanzou:
+            return [
+                "User-Agent": ILanzouConstants.webUA,
+                "Referer": ILanzouConstants.downloadReferer,
+                "Origin": ILanzouConstants.downloadOrigin
+            ]
         case .baidu:
             var h: [String: String] = [
                 "User-Agent": BaiduConstants.uaNetdisk
@@ -152,10 +158,6 @@ public enum DownloadHeaderBuilder {
                 h["Authorization"] = "Bearer \(token)"
             }
             return h
-        default:
-            return [
-                "User-Agent": QuarkConstants.apiUserAgent
-            ]
         }
     }
 }

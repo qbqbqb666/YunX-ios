@@ -32,6 +32,8 @@ public final class ToastManager {
 public final class AppContainer {
     public let settings: SettingsStore
     public let accountStore: AccountStore
+    public let videoAccountStore: VideoAccountStore
+    public let videoParseService: VideoParseService
     public let bookmarkStore: BookmarkStore
     public let backupService: AuthBackupService
     public let downloadManager: DownloadManager
@@ -46,6 +48,7 @@ public final class AppContainer {
     public let xunleiProvider: XunleiProvider
     public let guangyaProvider: GuangYaProvider
     public let baiduProvider: BaiduProvider
+    public let ilanzouProvider: ILanzouProvider
     public let githubProvider: GitHubProvider
 
     /// 跨 Tab 跳转控制（入队下载后自动切至「下载」Tab）
@@ -54,8 +57,10 @@ public final class AppContainer {
     public init() {
         let settings = SettingsStore()
         let accountStore = AccountStore()
+        let videoAccountStore = VideoAccountStore()
+        let videoParseService = VideoParseService(accountStore: videoAccountStore)
         let bookmarkStore = BookmarkStore()
-        let backupService = AuthBackupService(accountStore: accountStore)
+        let backupService = AuthBackupService(accountStore: accountStore, videoAccountStore: videoAccountStore)
         let downloadManager = DownloadManager(settings: settings)
         let toast = ToastManager()
 
@@ -68,6 +73,7 @@ public final class AppContainer {
         let xunlei = XunleiProvider()
         let guangya = GuangYaProvider()
         let baidu = BaiduProvider()
+        let ilanzou = ILanzouProvider()
         let github = GitHubProvider()
 
         // 绑定夸克/UC/迅雷 凭证自动回写续期（按原凭证匹配写回，避免多账号串号）
@@ -89,6 +95,8 @@ public final class AppContainer {
 
         self.settings = settings
         self.accountStore = accountStore
+        self.videoAccountStore = videoAccountStore
+        self.videoParseService = videoParseService
         self.bookmarkStore = bookmarkStore
         self.backupService = backupService
         self.downloadManager = downloadManager
@@ -102,6 +110,7 @@ public final class AppContainer {
         self.xunleiProvider = xunlei
         self.guangyaProvider = guangya
         self.baiduProvider = baidu
+        self.ilanzouProvider = ilanzou
         self.githubProvider = github
     }
 
@@ -117,7 +126,7 @@ public final class AppContainer {
         case .guangya: return guangyaProvider
         case .baidu: return baiduProvider
         case .github: return githubProvider
-        case .ilanzou: return nil
+        case .ilanzou: return ilanzouProvider
         }
     }
 

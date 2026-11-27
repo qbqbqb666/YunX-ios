@@ -20,6 +20,10 @@ public final class CloudDriveViewModel {
     public private(set) var actionMessage: String?
     public private(set) var errorMessage: String?
 
+    public private(set) var uploadingFileName: String?
+    public private(set) var uploadProgress: UploadProgress?
+    private var uploadTask: Task<Void, Never>?
+
     private let container: AppContainer
 
     public init(container: AppContainer) {
@@ -178,6 +182,60 @@ public final class CloudDriveViewModel {
         } catch {
             container.toast.show(error.localizedDescription)
         }
+    }
+
+    public func uploadLocalFile(
+        url: URL,
+        suggestedName: String? = nil,
+        cleanupAfterUpload: Bool = false
+    ) {
+        guard uploadTask == nil else {
+            container.toast.show("当前已有文件正在上传，请等待完成或取消")
+            return
+        }
+        guard let platform = selectedPlatform,
+              let cloud = container.cloudProvider(for: platform),
+              let credential = container.accountStore.credential(for: platform) else {
+            container.toast.show("请先登录个人网盘")
+            return
+        }
+        let targetDir = currentDirFid
+        uploadTask = Task { [weak self] in
+            guard let self else { return }
+            let accessed = url.startAccessingSecurityScopedResource()
+            defer {
+                if accessed { url.stopAccessingSecurityScopedResource() }
+                if cleanupAfterUpload { try? FileManager.default.removeItem(at: url) }
+                self.uploadingFileName = nil
+                self.uploadProgress = nil
+                self.uploadTask = nil
+            }
+            do {
+                let source = try UploadSource(fileURL: url, fileName: suggestedName)
+                self.uploadingFileName = source.fileName
+                self.uploadProgress = UploadProgress(phase: .preparing, sentBytes: 0, totalBytes: source.fileSize)
+                _ = try await cloud.uploadCloudFile(
+                    source: source,
+                    parentFid: targetDir,
+                    credential: credential,
+                    onProgress: { [weak self] progress in
+                        Task { @MainActor [weak self] in
+                            self?.uploadProgress = progress
+                        }
+                    }
+                )
+                self.container.toast.show("已上传「\(source.fileName)」")
+                await self.refresh()
+            } catch is CancellationError {
+                self.container.toast.show("已取消上传")
+            } catch {
+                self.container.toast.show("上传失败：\(error.localizedDescription)")
+            }
+        }
+    }
+
+    public func cancelUpload() {
+        uploadTask?.cancel()
     }
 
     // MARK: - 内部加载

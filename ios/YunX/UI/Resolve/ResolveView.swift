@@ -12,9 +12,18 @@ import SwiftUI
 import UIKit
 #endif
 
+enum ResolveMode: String, CaseIterable, Identifiable {
+    case cloud = "网盘解析"
+    case video = "视频解析"
+
+    var id: String { rawValue }
+}
+
 struct ResolveView: View {
     let container: AppContainer
     @Bindable var viewModel: ResolveViewModel
+    @State private var mode: ResolveMode = .cloud
+    @State private var videoVM: VideoResolveViewModel?
     @State private var clipboardCandidate: ParsedShare?
     @State private var clipboardRawText: String = ""
 
@@ -24,7 +33,24 @@ struct ResolveView: View {
                 if let session = viewModel.session {
                     sessionContentView(session: session)
                 } else {
-                    inputHomeView
+                    VStack(spacing: 0) {
+                        Picker("解析模式", selection: $mode) {
+                            ForEach(ResolveMode.allCases) { item in
+                                Text(item.rawValue).tag(item)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                        .padding(.bottom, 6)
+                        .background(Color(.systemGroupedBackground))
+
+                        if mode == .cloud {
+                            inputHomeView
+                        } else if let vvm = videoVM {
+                            VideoResolveSection(container: container, viewModel: vvm)
+                        }
+                    }
                 }
             }
             .navigationTitle(viewModel.session?.title ?? "云析 · 解析")
@@ -102,6 +128,9 @@ struct ResolveView: View {
                 }
             }
             .onAppear {
+                if videoVM == nil {
+                    videoVM = VideoResolveViewModel(container: container)
+                }
                 checkClipboardIfEnabled()
             }
         }
@@ -227,12 +256,12 @@ struct ResolveView: View {
 
     private var supportedPlatformsCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("当前已支持 10 大平台极速解析")
+            Text("当前已支持全部 11 大平台极速解析")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.secondary)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach([SharePlatform.quark, .uc, .pan123, .lanzou, .pan115, .c139, .xunlei, .guangya, .baidu, .github]) { platform in
+                ForEach([SharePlatform.quark, .uc, .pan123, .lanzou, .ilanzou, .pan115, .c139, .xunlei, .guangya, .baidu, .github]) { platform in
                     HStack(spacing: 8) {
                         Image(systemName: platform.symbolName)
                             .foregroundStyle(Color(hex: platform.brandHex))

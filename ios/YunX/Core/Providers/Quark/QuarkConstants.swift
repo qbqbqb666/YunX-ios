@@ -30,6 +30,9 @@ public enum QuarkConstants {
     public static let saveURL = "\(apiBase)/1/clouddrive/share/sharepage/save?pr=ucpro&fr=pc"
     public static let taskURL = "\(apiBase)/1/clouddrive/task?pr=ucpro&fr=pc"
     public static let deleteURL = "\(apiBase)/1/clouddrive/file/delete?pr=ucpro&fr=pc&uc_param_str="
+    public static let moveURL = "\(apiBase)/1/clouddrive/file/move?pr=ucpro&fr=pc&uc_param_str="
+    public static let shareCreateURL = "\(apiBase)/1/clouddrive/share?pr=ucpro&fr=pc&uc_param_str="
+    public static let shareInfoURL = "\(apiBase)/1/clouddrive/share/password?pr=ucpro&fr=pc&uc_param_str="
     public static let configURL = "\(apiBase)/1/clouddrive/config?pr=ucpro&fr=pc"
 
     public static let defaultPdirFid = "0"
